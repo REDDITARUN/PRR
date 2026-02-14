@@ -34,7 +34,10 @@ import coolname
 import hydra
 import pydantic
 from omegaconf import DictConfig
-from adam_atan2 import AdamATan2
+try:
+    from adam_atan2 import AdamATan2
+except ImportError:
+    AdamATan2 = None
 
 from puzzle_dataset import PuzzleDataset, PuzzleDatasetConfig, PuzzleDatasetMetadata
 from utils.functions import load_model_class, get_model_source_path
@@ -165,10 +168,14 @@ def create_model(config: PretrainConfig, train_metadata: PuzzleDatasetMetadata, 
                 for param in list(model.parameters()) + list(model.buffers()):
                     dist.broadcast(param, src=0)
 
-    # Optimizers
+    # Optimizers (use AdamATan2 if available, else standard AdamW)
+    Optimizer = AdamATan2 if AdamATan2 is not None else torch.optim.AdamW
+    if AdamATan2 is None:
+        print("adam_atan2 not available, using torch.optim.AdamW")
+
     if config.arch.puzzle_emb_ndim == 0:
         optimizers = [
-            AdamATan2(model.parameters(), lr=0, weight_decay=config.weight_decay,
+            Optimizer(model.parameters(), lr=0, weight_decay=config.weight_decay,
                       betas=(config.beta1, config.beta2))
         ]
         optimizer_lrs = [config.lr]
@@ -184,7 +191,7 @@ def create_model(config: PretrainConfig, train_metadata: PuzzleDatasetMetadata, 
             CastedSparseEmbeddingSignSGD_Distributed(
                 model.model.puzzle_emb.buffers(), lr=0,
                 weight_decay=config.puzzle_emb_weight_decay, world_size=world_size),
-            AdamATan2(model.parameters(), lr=0, weight_decay=config.weight_decay,
+            Optimizer(model.parameters(), lr=0, weight_decay=config.weight_decay,
                       betas=(config.beta1, config.beta2))
         ]
         optimizer_lrs = [config.puzzle_emb_lr, config.lr]
