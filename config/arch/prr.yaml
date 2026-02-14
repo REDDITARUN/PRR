@@ -1,0 +1,35 @@
+# Parallel Recursive Reasoner (PRR) architecture config
+name: prr@ParallelRecursiveReasoner
+loss:
+  name: losses@BestOfKLossHead
+  loss_type: stablemax_cross_entropy
+  tau: 0.1               # best-of-K temperature (lower = harder min selection)
+  scorer_weight: 0.5     # weight on scorer CE loss
+  diversity_weight: 0.1  # weight on branch diversity penalty
+
+# ---- Parallel branches ----
+num_branches: 8           # K parallel thought branches
+num_steps: 8              # T total recursion steps
+grad_steps: 2             # only last N steps carry gradients (memory efficiency)
+
+# ---- Recurrent core ----
+num_layers: 2             # transformer layers in shared core
+hidden_size: 256          # hidden dim (smaller than TRM's 512; we do more compute)
+num_heads: 4
+expansion: 4
+
+# ---- Communication ----
+comm_alpha: 0.1           # pull strength toward score-weighted average
+comm_temp: 1.0            # temperature for score softmax in communication
+comm_interval: 2          # communicate every N steps
+
+# ---- Branch diversity ----
+init_noise_std: 0.1       # noise added to branch inits during training
+
+# ---- Puzzle embeddings ----
+puzzle_emb_ndim: ${.hidden_size}
+puzzle_emb_len: 16
+
+# ---- Position encodings ----
+pos_encodings: rope
+forward_dtype: bfloat16

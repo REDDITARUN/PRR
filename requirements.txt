@@ -1,0 +1,10 @@
+einops
+wandb
+coolname
+hydra-core
+omegaconf
+pydantic
+argdantic
+numba
+numpy
+tqdm
