@@ -536,6 +536,17 @@ def launch(hydra_config: DictConfig):
             if RANK == 0 and metrics is not None:
                 wandb.log(metrics, step=train_state.step)
                 progress_bar.update(train_state.step - progress_bar.n)
+                # Show key metrics on progress bar
+                progress_bar.set_postfix({
+                    "loss": f"{metrics.get('train/main_loss', 0):.4f}",
+                    "oracle": f"{metrics.get('train/oracle_exact_accuracy', 0):.3f}",
+                    "scorer": f"{metrics.get('train/scorer_exact_accuracy', 0):.3f}",
+                })
+                # Print full metrics every 100 steps
+                if train_state.step % 100 == 0:
+                    print(f"\n[Step {train_state.step}] " + " | ".join(
+                        f"{k.replace('train/','')}={v:.4f}" for k, v in sorted(metrics.items())
+                    ))
             if config.ema:
                 ema_helper.update(train_state.model)
 
