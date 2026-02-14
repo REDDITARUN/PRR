@@ -516,7 +516,14 @@ def launch(hydra_config: DictConfig):
             config=config.model_dump(),
             settings=wandb.Settings(_disable_stats=True),
         )
-        wandb.log({"num_params": sum(x.numel() for x in train_state.model.parameters())}, step=0)
+        total_params = sum(x.numel() for x in train_state.model.parameters())
+        trainable_params = sum(x.numel() for x in train_state.model.parameters() if x.requires_grad)
+        print(f"\n{'='*50}")
+        print(f"  Total parameters:     {total_params:,}")
+        print(f"  Trainable parameters: {trainable_params:,}")
+        print(f"  Total size:           {total_params * 2 / 1024**2:.1f} MB (bfloat16)")
+        print(f"{'='*50}\n")
+        wandb.log({"num_params": total_params, "trainable_params": trainable_params}, step=0)
         save_code_and_config(config)
     if config.ema:
         print("Setup EMA")
