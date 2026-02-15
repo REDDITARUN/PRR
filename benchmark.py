@@ -140,8 +140,15 @@ def build_model(config: dict, args, metadata) -> BestOfKLossHead:
     print(f"Loading checkpoint: {args.checkpoint}")
     state_dict = torch.load(args.checkpoint, map_location=args.device)
 
+    # Strip _orig_mod. prefix added by torch.compile
+    cleaned_state_dict = {}
+    for k, v in state_dict.items():
+        new_key = k.replace("_orig_mod.", "")
+        cleaned_state_dict[new_key] = v
+    state_dict = cleaned_state_dict
+
     # Handle puzzle embedding shape mismatch
-    puzzle_emb_name = "_orig_mod.model.inner.puzzle_emb.weights"
+    puzzle_emb_name = "model.inner.puzzle_emb.weights"
     if puzzle_emb_name in state_dict:
         expected_shape = loss_head.model.puzzle_emb.weights.shape
         if state_dict[puzzle_emb_name].shape != expected_shape:
@@ -151,7 +158,6 @@ def build_model(config: dict, args, metadata) -> BestOfKLossHead:
                 .expand(expected_shape).contiguous()
             )
 
-    # Handle potential key mismatches from torch.compile
     loss_head.load_state_dict(state_dict, assign=True)
     loss_head.eval()
     print(f"  Model loaded ({sum(p.numel() for p in loss_head.parameters()):,} params)")
