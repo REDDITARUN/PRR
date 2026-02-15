@@ -348,12 +348,14 @@ def main():
     # Load test dataset
     print(f"\nLoading dataset from {args.data_dir}...")
     test_dataset = PuzzleDataset(PuzzleDatasetConfig(
-        data_paths=[args.data_dir],
-        split="test",
+        seed=0,
+        dataset_paths=[args.data_dir],
         global_batch_size=args.batch_size,
+        test_set_mode=True,
+        epochs_per_iter=1,
         rank=0,
-        world_size=1,
-    ))
+        num_replicas=1,
+    ), split="test")
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=None,
